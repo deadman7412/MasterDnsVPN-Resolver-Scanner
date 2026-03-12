@@ -1,0 +1,52 @@
+# -------------------------
+# Go
+# -------------------------
+cli/bin/
+cli/vendor/
+*.exe
+*.test
+*.out
+/tmp/
+
+# -------------------------
+# Flutter / Dart
+# -------------------------
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/.packages
+app/pubspec.lock
+*.g.dart
+*.freezed.dart
+
+# -------------------------
+# Secrets / Config
+# -------------------------
+*.toml
+!*_config.toml.simple
+*.env
+*.key
+secrets/
+
+# -------------------------
+# macOS
+# -------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -------------------------
+# IDE
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -------------------------
+# Logs / Output
+# -------------------------
+*.log
+results/
+output/
