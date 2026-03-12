@@ -221,13 +221,32 @@ The `dns_utils` Python package from MasterDnsVPN source must be reimplemented in
 | Component | Source reference | Complexity |
 |---|---|---|
 | Label encoding / chunking | `DnsPacketParser.generate_labels` | Medium |
-| VPN header creation | `DnsPacketParser.create_vpn_header` | Low |
-| XOR cipher | `dns_utils/utils.py` | Trivial |
-| ChaCha20 cipher | `dns_utils/utils.py` | Trivial — `golang.org/x/crypto` |
-| AES-128/192/256-GCM | `dns_utils/utils.py` | Trivial — `crypto/aes` |
+| Upload MTU capacity calc | `DnsPacketParser.calculate_upload_mtu` | Low |
+| VPN header creation | `DnsPacketParser.create_vpn_header` | Medium |
+| VPN header parsing | `DnsPacketParser.parse_vpn_header_bytes` | Medium |
+| DNS response extraction | `DnsPacketParser.extract_vpn_response` | Low |
+| XOR cipher (method 1) | `dns_utils/utils.py` | Trivial |
+| ChaCha20 (method 2) | `dns_utils/utils.py` | Trivial — `golang.org/x/crypto/chacha20poly1305` |
+| AES-128/192/256-GCM (methods 3–5) | `dns_utils/utils.py` | Trivial — `crypto/aes` + `crypto/cipher` |
+| Key derivation per cipher | `DnsPacketParser._derive_key` | Low |
 | MTU binary search | `client.py _binary_search_mtu` | Low |
 | DNS packet send/receive | `client.py _send_and_receive_dns` | Trivial — `miekg/dns` |
-| SESSION_INIT packet | `client.py _init_session` | Low |
+| Upload MTU test | `client.py send_upload_mtu_test` | Low — note: `encode_data=False`, no encryption |
+| Download MTU test | `client.py send_download_mtu_test` | Low — note: `encode_data=True`, encrypted |
+| SESSION_INIT packet | `client.py _init_session` | Low — includes compression nibble byte |
+| SET_MTU_REQ sync | `client.py _sync_mtu_with_server` | Low |
+
+**Key implementation notes:**
+
+- Upload MTU test sends data as raw hex (no encryption, `encode_data=False`). Download MTU
+  test encrypts the payload (`encode_data=True`). These are not symmetric.
+- SESSION_INIT payload is 18 bytes: 16-char hex token + flag byte + compression byte.
+  Compression byte = `(upload_compression << 4) | download_compression`. For scanner use,
+  set both to 0 (OFF) since we are testing connectivity, not sending real traffic.
+- VPN header has variable length depending on packet type. Stream-related packets include
+  stream_id (2 bytes) and sequence_num (2 bytes). Fragment-related packets add fragment_id
+  (1 byte), total_fragments (1 byte), total_data_length (2 bytes). PING is 2 bytes only.
+- Crypto overhead to subtract from usable MTU: 0 (XOR/None), 16 (ChaCha20), 28 (AES-GCM).
 
 Total estimated effort: 3–5 days to implement and validate against a live MasterDnsVPN server.
 

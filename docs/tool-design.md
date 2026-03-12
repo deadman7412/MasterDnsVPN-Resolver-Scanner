@@ -265,3 +265,40 @@ Final output: a sorted list ready to paste directly into `RESOLVER_DNS_SERVERS` 
 - Full Scan on a large pool (e.g. multiple /16 ranges) can generate millions of UDP probes.
   The tool should print estimated time and IP count before starting Full Scan and prompt for
   confirmation.
+
+### Protocol Details (from latest source)
+
+**Upload vs download MTU test asymmetry:**
+- Upload test sends data as raw hex with `encode_data=False` — no encryption applied
+- Download test encrypts payload with `codec_transform` and uses `encode_data=True`
+- These are not symmetric and must be implemented separately
+
+**SESSION_INIT payload (18 bytes):**
+```
+[0–15]  16 ASCII hex chars   random init token
+[16]    1 byte               base-encode flag (0x01 or 0x00)
+[17]    1 byte               compression nibbles: (upload_type << 4) | download_type
+```
+For scanner use, set compression byte to `0x00` (both directions OFF). Compression is
+irrelevant for connectivity testing and disabled automatically below 100-byte MTU anyway.
+
+**Encryption methods and crypto overhead:**
+
+| ID | Cipher | Key derivation | Overhead |
+|---|---|---|---|
+| 0 | None | — | 0 bytes |
+| 1 | XOR | key zero-padded to 32 bytes | 0 bytes |
+| 2 | ChaCha20 | SHA256(key) → 32 bytes | 16 bytes |
+| 3 | AES-128-GCM | MD5(key) → 16 bytes | 28 bytes |
+| 4 | AES-192-GCM | key zero-padded → 24 bytes | 28 bytes |
+| 5 | AES-256-GCM | SHA256(key) → 32 bytes | 28 bytes |
+
+**VPN header size by packet type:**
+- `PING` / `SESSION_INIT`: 2 bytes (session_id + packet_type only)
+- `MTU_UP_REQ` / `MTU_DOWN_REQ`: 10 bytes (+ stream_id + seq_num + frag fields)
+- Stream data packets: 10+ bytes depending on fragment and compression fields
+
+**MasterDnsVPN server's built-in MTU save feature:**
+The server config has `SAVE_MTU_SERVERS_TO_FILE`, `MTU_SERVERS_FILE_NAME`, and
+`MTU_SERVERS_FILE_FORMAT` which saves valid resolver results automatically. Our scanner
+output format should be compatible with the client's `RESOLVER_DNS_SERVERS` list format.
