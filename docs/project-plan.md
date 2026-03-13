@@ -254,36 +254,42 @@ Total estimated effort: 3–5 days to implement and validate against a live Mast
 
 ## Phase 1 Timeline — Go CLI
 
-### M1 — Foundation `3 days`
+### M1 — Foundation `3 days` — DONE
 
 Everything needed before a single DNS packet can be sent.
 
-- [ ] Go module init, folder structure (`cli/`)
-- [ ] Config: flags + optional config file (domain, key, timeouts, concurrency per stage)
-- [ ] Input: single IP, CIDR notation, wildcard notation (`2.144.x.x/24`), IP list file
-- [ ] Pool: bundled curated list (~10k IPs) embedded in binary
-- [ ] Pool: bundled default CIDR ranges as editable config file
-- [ ] Scan mode flag: `--mode quick|range|full`
-- [ ] Shuffle-within-step-window logic for CIDR scanning
-- [ ] Early-exit logic (min_valid_resolvers) for quick/range modes
-- [ ] Full scan confirmation prompt with IP count estimate
-- [ ] Basic progress output using bracketed tags (`[ok]` `[fail]` `[info]` etc.)
+- [x] Go module init, folder structure (`cli/`)
+- [x] Config: flags + optional config file (domain, key, timeouts, concurrency per stage)
+- [x] Input: single IP, CIDR notation, wildcard notation (`2.144.x.x/24`), IP list file
+- [x] Pool: bundled curated list (~7,800 IPs from findns `ir-resolvers.txt`) embedded in binary
+- [x] Pool: bundled default CIDR ranges (~10.8M IPs from findns `ir-cidrs.txt`)
+- [x] Scan mode flag: `--mode quick|range|full`
+- [x] Shuffle-within-step-window logic for CIDR scanning
+- [x] Early-exit logic (min_valid_resolvers) for quick/range modes
+- [x] Full scan confirmation prompt with IP count estimate
+- [x] Progress output using bracketed tags (`[ok]` `[fail]` `[info]` etc.)
+- [x] Logger module (`cli/logger/`) — stdout clean, file has millisecond timestamps, `--log` flag
+- [x] Asset cleaner (`cli/tools/cleanassets/`) — validates and deduplicates bundled data pre-build
+- [x] Build script (`scripts/build.sh`) — cleans assets then cross-compiles all 6 targets
+- [x] CLI docs (`docs/cli-usage.md`, `docs/logging.md`, `docs/build.md`)
 
 ---
 
-### M2 — Generic DNS Stages 1–5 `4 days`
+### M2 — Generic DNS Stages 1–5 `4 days` — NEXT
 
 No VPN server required. Pure DNS validation.
 
-- [ ] Add `miekg/dns` dependency
-- [ ] Concurrency control: `semaphore` per stage with configurable limits
-- [ ] Stage 1: UDP port 53 reachability (500–1000 concurrent, 0.5s timeout)
+- [ ] Concurrency control: semaphore per stage with configurable limits
+- [ ] Stage 1: UDP port 53 reachability (750 concurrent, 0.5s timeout)
 - [ ] Stage 2: Valid DNS response — A query, RCODE NOERROR, at least one answer
 - [ ] Stage 3: Poisoning detection — known-good baseline + NXDOMAIN injection check
 - [ ] Stage 4: TXT record support — query `_dmarc.google.com`, verify data intact
 - [ ] Stage 5: VPN domain NS resolution — NS + A/AAAA for configured domain
 - [ ] Per-stage result structs (RTT, pass/fail, reason)
 - [ ] Live stats output: IPs scanned, passed, failed, dropped per stage
+- [ ] Wire stages into pool stream in main.go
+
+Note: `miekg/dns` and `golang.org/x/crypto` dependencies already installed (done in M1).
 
 **Milestone exit:** tool can ingest a pool and produce a filtered list of clean DNS resolvers
 without needing a VPN server. Immediately useful as a standalone pre-filter.
@@ -335,27 +341,27 @@ Requires a live VPN server and M3 complete.
 
 ---
 
-### M6 — Build Pipeline `2 days`
+### M6 — Build Pipeline `2 days` — PARTIAL
 
-- [ ] `scripts/build.sh` — cross-compiles all 6 targets into `cli/bin/`
+- [x] `scripts/build.sh` — cleans assets then cross-compiles all 6 targets into `cli/bin/`
+- [x] `cli/tools/cleanassets/` — validates and deduplicates bundled data before embedding
+- [x] All 6 targets build and produce static binaries
 - [ ] `.github/workflows/release.yml` — builds and attaches binaries on git tag push
-- [ ] Test each binary target (linux-amd64, linux-arm64, windows, macos-arm64, macos-amd64, android-arm64)
 - [ ] `cli/README.md` — usage, flags, config reference, example output
 
 ---
 
 ### Summary
 
-| Milestone | Focus | Days |
+| Milestone | Focus | Status |
 |---|---|---|
-| M1 | Foundation — config, input, pool, scan modes | 3 |
-| M2 | Stages 1–5 — generic DNS validation | 4 |
-| M3 | Protocol layer — Go reimplementation of dns_utils | 4 |
-| M4 | Stages 6–7 — VPN MTU test + E2E handshake | 4 |
-| M5 | Output, scoring, export | 2 |
-| M6 | Build pipeline, CI/CD, binaries | 2 |
-| **Total** | | **~19 days** |
+| M1 | Foundation — config, input, pool, logger, build tooling | DONE |
+| M2 | Stages 1–5 — generic DNS validation | NEXT |
+| M3 | Protocol layer — Go reimplementation of dns_utils | pending |
+| M4 | Stages 6–7 — VPN MTU test + E2E handshake | pending |
+| M5 | Output, scoring, export | pending |
+| M6 | Build pipeline, CI/CD, binaries | PARTIAL (build script done, CI/CD pending) |
 
-M1 and M2 have no dependencies on each other beyond M1's foundation.
+M2 can start immediately — no blockers.
 M3 must complete before M4 can start.
 M5 can be built incrementally alongside M4.

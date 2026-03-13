@@ -3,6 +3,8 @@
 # -------------------------
 cli/bin/
 cli/vendor/
+cli/scanner
+cli/scanner-*
 *.exe
 *.test
 *.out
@@ -50,3 +52,8 @@ secrets/
 *.log
 results/
 output/
+
+# -------------------------
+# Source Code
+# -------------------------
+/MasterDnsVPN-main-source
